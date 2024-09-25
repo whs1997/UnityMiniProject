@@ -21,7 +21,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] bool isGround;
     [SerializeField] bool isCharging;
 
-    [SerializeField] Transform groundCheck;
+    [SerializeField] Transform groundCheckLeft;
+    [SerializeField] Transform groundCheckRight;
+
     [SerializeField] LayerMask groundLayer;
 
     private float x;
@@ -81,7 +83,8 @@ public class PlayerController : MonoBehaviour
 
     private void GroundChecker()
     {
-        isGround = Physics2D.Raycast(groundCheck.position, Vector2.down, 0.1f, groundLayer);
+        isGround = Physics2D.Raycast(groundCheckLeft.position, Vector2.down, 0.1f, groundLayer);
+        isGround = Physics2D.Raycast(groundCheckRight.position, Vector2.down, 0.1f, groundLayer);
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
