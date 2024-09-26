@@ -18,11 +18,14 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float maxJumpPower;
     [SerializeField] float jumpCharge;
     [SerializeField] float jumpPower;
+    // [SerializeField] bool isGroundLeft;
+    // [SerializeField] bool isGroundRight;
     [SerializeField] bool isGround;
     [SerializeField] bool isCharging;
 
-    [SerializeField] Transform groundCheckLeft;
-    [SerializeField] Transform groundCheckRight;
+    // [SerializeField] Transform groundCheckLeft;
+    // [SerializeField] Transform groundCheckRight;
+    [SerializeField] Transform groundCheck;
 
     [SerializeField] LayerMask groundLayer;
 
@@ -42,7 +45,7 @@ public class PlayerController : MonoBehaviour
 
     private void Move()
     {
-        if(isGround && !isCharging && rigid.velocity.y == 0)
+        if((isGround) && !isCharging && rigid.velocity.y == 0)
         {
             float moveDir = Input.GetAxisRaw("Horizontal");
             rigid.velocity = new Vector2(moveDir * moveSpeed, rigid.velocity.y);
@@ -62,7 +65,7 @@ public class PlayerController : MonoBehaviour
     {
         // isGround = Physics2D.Raycast(groundCheck.position, Vector2.down, 0.2f, groundLayer);
 
-        if (Input.GetKey(KeyCode.Space) && isGround)
+        if (Input.GetKey(KeyCode.Space) && (isGround))
         {
             // charging
             rigid.velocity = new Vector2(0, 0); // 이동하지 않음
@@ -71,10 +74,12 @@ public class PlayerController : MonoBehaviour
             jumpPower = Mathf.Clamp(jumpPower, minJumpPower, maxJumpPower); // 최대 점프힘까지만
         }
 
-        if (Input.GetKeyUp(KeyCode.Space) && isGround)
+        if (Input.GetKeyUp(KeyCode.Space) && (isGround))
         {
             float jumpDirection = x;
             rigid.velocity = new Vector2(jumpDirection * moveSpeed, jumpPower);
+            // isGroundLeft = false;
+            // isGroundRight = false;
             isGround = false;
             isCharging = false; // 충전 해제
             jumpPower = 0f; // 점프힘 0 초기화
@@ -83,15 +88,22 @@ public class PlayerController : MonoBehaviour
 
     private void GroundChecker()
     {
-        isGround = Physics2D.Raycast(groundCheckLeft.position, Vector2.down, 0.1f, groundLayer);
-        isGround = Physics2D.Raycast(groundCheckRight.position, Vector2.down, 0.1f, groundLayer);
+        Vector2 boxSize = new Vector2(coll.bounds.size.x, 0.1f); // 플레이어의 좌우 크기 사이즈의 박스
+        Vector2 boxOrigin = new Vector2(coll.bounds.center.x, coll.bounds.min.y); // 플레이어의 바닥 가운데 위치
+        isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사
+
+        // isGroundLeft = Physics2D.Raycast(groundCheckLeft.position, Vector2.down, 0.1f, groundLayer);
+        // isGroundRight = Physics2D.Raycast(groundCheckRight.position, Vector2.down, 0.1f, groundLayer);
+        
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Ground"))
         {
-            isGround = true;
+            // isGroundLeft = false;
+            // isGroundRight = false;
+            isGround = false;
         }
     }
 }
