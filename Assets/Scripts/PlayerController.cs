@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    // public enum State { Idle, Walk, Charging, Jumping, Flatten };
-    // private State state = State.Idle;
+    public enum State { Idle, Walk, Charging, Jumping, Falled, Sliding };
+    private State state = State.Idle;
 
     [SerializeField] Rigidbody2D rigid;
     [SerializeField] SpriteRenderer render;
