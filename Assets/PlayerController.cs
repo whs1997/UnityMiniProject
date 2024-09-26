@@ -119,11 +119,11 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Wall"))
         {
-                Vector2 normal = collision.GetContact(0).normal;
-                rigid.AddForce(normal * 3f, ForceMode2D.Impulse);
+            Vector2 normal = collision.GetContact(0).normal;
+            rigid.AddForce(normal * 3f, ForceMode2D.Impulse);
 
-                Debug.Log("벽에 튕겨나감");
+
+            Debug.Log("벽에 튕겨나감");
         }
-        
     }
 }
