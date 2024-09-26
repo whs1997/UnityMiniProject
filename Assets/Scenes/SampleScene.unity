@@ -2932,6 +2932,7 @@ MonoBehaviour:
   render: {fileID: 1262017980}
   coll: {fileID: 1262017978}
   wall: {fileID: 6200000, guid: bdb65e0b02fe938438da9cc710794b94, type: 2}
+  animator: {fileID: 1262017983}
   moveSpeed: 5
   minJumpPower: 1
   maxJumpPower: 25
@@ -2945,6 +2946,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  curAniHash: 0
 --- !u!95 &1262017983
 Animator:
   serializedVersion: 5

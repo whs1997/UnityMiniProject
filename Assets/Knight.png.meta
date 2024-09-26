@@ -240,7 +240,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Knight_Falled
+      name: Knight_Down
       rect:
         serializedVersion: 2
         x: 229
@@ -356,8 +356,8 @@ TextureImporter:
     secondaryTextures: []
     nameFileIdTable:
       Knight_Charging: -1515099857
+      Knight_Down: 745153697
       Knight_Fall: -1849224074
-      Knight_Falled: 745153697
       Knight_Idle: 53795802
       Knight_Jump: 1446487305
       Knight_Land1: 1598010469
