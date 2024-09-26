@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.ReorderableList;
 using UnityEditor.U2D.Path.GUIFramework;
 using UnityEngine;
 
@@ -10,6 +11,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] Rigidbody2D rigid;
     [SerializeField] SpriteRenderer render;
     [SerializeField] Collider2D coll;
+    [SerializeField] PhysicsMaterial2D wall;
+
     private State state;
 
     [SerializeField] float moveSpeed;
@@ -18,13 +21,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float maxJumpPower;
     [SerializeField] float jumpCharge;
     [SerializeField] float jumpPower;
-    // [SerializeField] bool isGroundLeft;
-    // [SerializeField] bool isGroundRight;
+
     [SerializeField] bool isGround;
     [SerializeField] bool isCharging;
 
-    // [SerializeField] Transform groundCheckLeft;
-    // [SerializeField] Transform groundCheckRight;
     [SerializeField] Transform groundCheck;
 
     [SerializeField] LayerMask groundLayer;
@@ -45,7 +45,7 @@ public class PlayerController : MonoBehaviour
 
     private void Move()
     {
-        if((isGround) && !isCharging && rigid.velocity.y == 0)
+        if(isGround && !isCharging && rigid.velocity.y == 0) // 바닥에 있어야하고 점프중엔 이동 X
         {
             float moveDir = Input.GetAxisRaw("Horizontal");
             rigid.velocity = new Vector2(moveDir * moveSpeed, rigid.velocity.y);
@@ -63,9 +63,7 @@ public class PlayerController : MonoBehaviour
 
     private void Jump()
     {
-        // isGround = Physics2D.Raycast(groundCheck.position, Vector2.down, 0.2f, groundLayer);
-
-        if (Input.GetKey(KeyCode.Space) && (isGround))
+        if (Input.GetKey(KeyCode.Space) && isGround)
         {
             // charging
             rigid.velocity = new Vector2(0, 0); // 이동하지 않음
@@ -74,12 +72,10 @@ public class PlayerController : MonoBehaviour
             jumpPower = Mathf.Clamp(jumpPower, minJumpPower, maxJumpPower); // 최대 점프힘까지만
         }
 
-        if (Input.GetKeyUp(KeyCode.Space) && (isGround))
+        if (Input.GetKeyUp(KeyCode.Space) && isGround) // 0.6초간 충전이 끝나면 
         {
             float jumpDirection = x;
-            rigid.velocity = new Vector2(jumpDirection * moveSpeed, jumpPower);
-            // isGroundLeft = false;
-            // isGroundRight = false;
+            rigid.velocity = new Vector2(jumpDirection * moveSpeed, jumpPower); // x방향 moveSpeed, y방향 jumpPower만큼 이동. 포물선?
             isGround = false;
             isCharging = false; // 충전 해제
             jumpPower = 0f; // 점프힘 0 초기화
@@ -90,20 +86,22 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 boxSize = new Vector2(coll.bounds.size.x, 0.1f); // 플레이어의 좌우 크기 사이즈의 박스
         Vector2 boxOrigin = new Vector2(coll.bounds.center.x, coll.bounds.min.y); // 플레이어의 바닥 가운데 위치
-        isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사
-
-        // isGroundLeft = Physics2D.Raycast(groundCheckLeft.position, Vector2.down, 0.1f, groundLayer);
-        // isGroundRight = Physics2D.Raycast(groundCheckRight.position, Vector2.down, 0.1f, groundLayer);
-        
+        isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사        
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.gameObject.CompareTag("Ground"))
+        if (collision.gameObject.CompareTag("Wall"))
         {
-            // isGroundLeft = false;
-            // isGroundRight = false;
-            isGround = false;
+            if (isGround)
+            {
+                Debug.Log("벽에 붙음");
+            }
+            else if (!isGround)
+            {
+                collision.collider.sharedMaterial = wall;
+                Debug.Log("벽에 튕겨나감");
+            }
         }
     }
 }
