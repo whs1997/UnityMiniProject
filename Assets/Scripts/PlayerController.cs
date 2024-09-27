@@ -151,7 +151,6 @@ public class PlayerController : MonoBehaviour
         {
             // Idle 애니메이션 재생
             player.animator.Play(idleHash);
-            player.rigid.velocity = Vector2.zero; // 이동하지 않는 상태
         }
 
         public override void Update()
@@ -162,7 +161,7 @@ public class PlayerController : MonoBehaviour
                 player.ChangeState(State.Run);
             }
             // 스페이스바를 눌러 충전중이면 Charge 상태
-            if (Input.GetKey(KeyCode.Space))
+            if (Input.GetKey(KeyCode.Space) && player.isGround)
             {
                 player.ChangeState(State.Charge);
             }
@@ -202,8 +201,7 @@ public class PlayerController : MonoBehaviour
                 player.rigid.velocity = new Vector2(moveDir, 0);
             }
             // 벽쪽으론 이동하지 않게
-            // 전방에 Wall이 있으면, 앞으로 이동하지 않게 frontWall = true, 이동X
-
+            // 전방에 Wall이 있으면, 앞으로 이동하지 않게 frontWall = true, 이동X            
 
             // 속도를 가지지 않은 가만히 있는 상태면 Idle 상태
             if (player.rigid.velocity.sqrMagnitude < 0.01f)
@@ -239,7 +237,7 @@ public class PlayerController : MonoBehaviour
             // 바닥에있고 스페이스바를 누르고 있으면,
             if (Input.GetKey(KeyCode.Space) && player.isGround)
             {
-                player.rigid.velocity = new Vector2(0, 0); // 이동하지 않음
+                player.rigid.velocity = new Vector2(0, player.rigid.velocity.y); // 이동하지 않음
                 player.isCharging = true; // isCharging 중엔 이동하지 않음
                 player.jumpPower += player.jumpCharge * Time.deltaTime; // 점프힘 증가
                 player.jumpPower = Mathf.Clamp(player.jumpPower, player.minJumpPower, player.maxJumpPower); // 최대 점프힘까지만 증가
@@ -247,19 +245,17 @@ public class PlayerController : MonoBehaviour
 
             // 최대 힘이 되면 따로 입력 안해도 점프되게
 
-
-            // 충전 후 스페이스바를 떼면 Jump 상태
-            if (Input.GetKeyUp(KeyCode.Space) && player.isGround)
-            {
-                player.ChangeState(State.Jump);
-            }
-            /*
             // 충전 중 jumpPower가 maxJumpPower로 되면 Jump 상태
             if (player.jumpPower == player.maxJumpPower)
             {
                 player.ChangeState(State.Jump);
             }
-            */
+            // 충전 후 스페이스바를 떼면 Jump 상태
+            else if (Input.GetKeyUp(KeyCode.Space) && player.isGround)
+            {
+                player.ChangeState(State.Jump);
+            }    
+            
         }
     }
 
@@ -417,6 +413,7 @@ public class PlayerController : MonoBehaviour
                 Vector2 normal = collision.GetContact(0).normal; // 처음 충돌한 지점의 벡터 normal
                 rigid.AddForce(normal * 3f, ForceMode2D.Impulse); // 처음 충돌한 지점에서 튕겨나감
                 */
+                // 벽 콜라이더에 Physics Metarial 2D에 bounce를 주는게 나은거같음
 
                 Debug.Log("벽에 튕겨나감");
             }
