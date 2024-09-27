@@ -39,6 +39,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] float currentFallSec = 0f; // 땅에 있지 않을 시 기록하는 체공 시간
     [SerializeField] Transform groundCheck; // isGround 체크를 위한 플레이어 밑 오브젝트
     [SerializeField] LayerMask groundLayer; // Ground 레이어 검사
+    [SerializeField] bool frontWall;
+    [SerializeField] LayerMask wallLayer; // Wall 레이어 검사
 
     private float x; // Horizontal 입력값 받음
 
@@ -83,8 +85,14 @@ public class PlayerController : MonoBehaviour
         x = Input.GetAxisRaw("Horizontal");
         Flip();
         GroundChecker();
+        FrontChecker();
+    }
+
+    private void FixedUpdate()
+    {
         CheckFalling();
     }
+
 
     private void Flip()
     {
@@ -94,18 +102,18 @@ public class PlayerController : MonoBehaviour
            curState == State.Slide)
             return; // 해당 상태들에선 Flip 하지 않기
 
-            if (x < 0)
-                render.flipX = true; // 왼쪽으로 입력하면 좌우 반전
-            else if (x > 0)
-                render.flipX = false;
+        if (x < 0)
+            render.flipX = true; // 왼쪽으로 입력하면 좌우 반전
+        else if (x > 0)
+            render.flipX = false;
     }
 
     private void CheckFalling()
     {
-        if (rigid.velocity.y < 0.01f)
+        if (rigid.velocity.y < 0 && !isGround)
             currentFallSec += Time.deltaTime; // 낙하중일때 시간 증가
 
-        if (Mathf.Abs(rigid.velocity.y) < 0.01f) // y 이동이 없으면 체공시간 0
+        if (Mathf.Abs(rigid.velocity.y) < 0.01f && isGround) // y 이동이 없으면 체공시간 0
             currentFallSec = 0;
 
         if (rigid.velocity.y < -maxFallSpeed) // 최대 낙하속도 제한
@@ -120,35 +128,13 @@ public class PlayerController : MonoBehaviour
         Vector2 boxOrigin = new Vector2(coll.bounds.center.x, coll.bounds.min.y); // 플레이어의 바닥 가운데 위치
         isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사
     }
-    /*
-    public void AnimatorPlay()
+
+    private void FrontChecker()
     {
-        int checkAniHash = 0; // 플레이 할 애니메이션 해시 값
-
-        if (rigid.velocity.y > 0.01f && !isGround)
-            checkAniHash = jumpHash;
-
-        if (rigid.velocity.y < -0.01f && !isGround)
-            checkAniHash = fallHash;
-
-        if (rigid.velocity.sqrMagnitude < 0.01f && isGround)
-            checkAniHash = idleHash;
-
-        if (rigid.velocity.sqrMagnitude > 0.01f && isGround)
-            checkAniHash = runHash;
-
-        if (Input.GetKey(KeyCode.Space) && isGround && rigid.velocity.sqrMagnitude < 0.1f)
-            checkAniHash = chargeHash;
-        if (Input.GetKeyUp(KeyCode.Space))
-            checkAniHash = idleHash;
-
-        if (curAniHash != checkAniHash)
-        {
-            curAniHash = checkAniHash;
-            animator.Play(curAniHash);
-        }
+        Vector2 rayDirection = Vector2.right * x; // ray를 쏠 방향
+        frontWall = Physics2D.Raycast(transform.position, rayDirection, 0.6f, wallLayer); // 전방 0.1f 만큼에 벽 레이어가 있는지 검사
     }
-    */
+
     private void ChangeState(State nextState)
     {
         states[(int)curState].Exit();
@@ -165,6 +151,7 @@ public class PlayerController : MonoBehaviour
         {
             // Idle 애니메이션 재생
             player.animator.Play(idleHash);
+            player.rigid.velocity = Vector2.zero; // 이동하지 않는 상태
         }
 
         public override void Update()
@@ -194,19 +181,28 @@ public class PlayerController : MonoBehaviour
 
         public override void Enter()
         {
-            // Run 애니메이션 재생
-            player.animator.Play(runHash);
         }
 
         public override void Update()
         {
-            // 달리기
-            if (player.isGround && !player.isCharging && player.rigid.velocity.y == 0) // 바닥에 있어야하고 점프중엔 이동 X
+            // Run 애니메이션 재생, 달리고 있을때만
+            if (player.rigid.velocity.sqrMagnitude > 0.01f)
             {
-                player.rigid.velocity = new Vector2(player.x * player.moveSpeed, player.rigid.velocity.y);
+                player.animator.Play(runHash);
             }
-            // 벽쪽으론 이동하지 않게 해야함
-            // 전방에 Wall이 있으면, 앞으로 이동하지 않게            
+
+            float moveDir = player.x * player.moveSpeed;
+            // 달리기
+            if (player.isGround && !player.isCharging) // 바닥에서 충전중이지 않을때 좌우입력하면 
+            {
+                if (player.frontWall)
+                {
+                    moveDir = 0;
+                }
+                player.rigid.velocity = new Vector2(moveDir, 0);
+            }
+            // 벽쪽으론 이동하지 않게
+            // 전방에 Wall이 있으면, 앞으로 이동하지 않게 frontWall = true, 이동X
 
 
             // 속도를 가지지 않은 가만히 있는 상태면 Idle 상태
@@ -280,7 +276,7 @@ public class PlayerController : MonoBehaviour
             SoundManager.Instance.PlaySFX(player.jumpClip);
 
             // Jump
-            player.rigid.velocity = new Vector2(player.x * player.moveSpeed * 0.7f, player.jumpPower);
+            player.rigid.velocity = new Vector2(player.x * player.moveSpeed, player.jumpPower);
             player.isGround = false; // 점프중이니 isGround = false
             player.isCharging = false; // 충전 해제
             player.jumpPower = 0f; // 점프힘 0 초기화
@@ -315,13 +311,13 @@ public class PlayerController : MonoBehaviour
 
         public override void Update()
         {
-            // 낙하 시간이 1초 이하로 착지하면 Land 상태
-            if (player.currentFallSec <= 1 && player.isGround)
+            // 낙하 시간이 0.6초 이하로 착지하면 Land 상태
+            if (player.currentFallSec <= 0.6 && player.isGround)
             {
                 player.ChangeState(State.Land);
             }
-            // 낙하시간이 1초보다 크고 착지하면 Down 상태
-            else if (player.currentFallSec > 1 && player.isGround)
+            // 낙하시간이 0.6초보다 크고 착지하면 Down 상태
+            else if (player.currentFallSec > 0.6 && player.isGround)
             {
                 player.ChangeState(State.Down);
             }
@@ -363,16 +359,16 @@ public class PlayerController : MonoBehaviour
             // Down 애니메이션 재생
             player.animator.Play(downHash);
             // Down 효과음 재생
-            SoundManager.Instance.PlaySFX(player.landClip);
+            SoundManager.Instance.PlaySFX(player.downClip);
             // 1초동안 못움직이는 효과?
+        }
+        public override void Update()
+        {
             if (!isDowned)
             {
                 isDowned = true;
                 player.StartCoroutine(DownCoroutine());
             }
-        }
-        public override void Update()
-        {
             /*
             // 속도를 가지지 않은 가만히 있는 상태면 Idle 상태
             if (player.rigid.velocity.sqrMagnitude < 0.01f)
@@ -410,14 +406,20 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Wall"))
         {
-            // 벽(옆면) 에 부딪히면 Hit 효과음 재생
-            SoundManager.Instance.PlaySFX(hitClip);
+            if (curState == State.Jump ||
+                curState == State.Fall ||
+                curState == State.Down ||
+                curState == State.Slide)
+            {
+                // 공중에서 벽(옆면)에 부딪히면 Hit 효과음 재생
+                SoundManager.Instance.PlaySFX(hitClip);
+                /*
+                Vector2 normal = collision.GetContact(0).normal; // 처음 충돌한 지점의 벡터 normal
+                rigid.AddForce(normal * 3f, ForceMode2D.Impulse); // 처음 충돌한 지점에서 튕겨나감
+                */
 
-            Vector2 normal = collision.GetContact(0).normal;
-            rigid.AddForce(normal * 3f, ForceMode2D.Impulse);
-
-
-            Debug.Log("벽에 튕겨나감");
+                Debug.Log("벽에 튕겨나감");
+            }
         }
     }
 }
