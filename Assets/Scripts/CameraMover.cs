@@ -11,15 +11,15 @@ public class CameraMover : MonoBehaviour
     private void Update()
     {
         // 맵의 첫 위치부터 1 ~ n개 버츄얼 카메라
-        // 플레이어의 높이가 0 ~ 10 일땐 1번 카메라
-        // 10 ~ 20은 2번 카메라, 20~30은 3번 카메라,,, 쭉 올라감
+        // 플레이어의 높이가 0 ~ 14 일땐 1번 카메라
+        // 14 ~ 28는 2번 카메라, 28~42는 3번 카메라,,, 쭉 올라감
         // Priority가 높은 카메라가 현재 카메라
 
         float playerHeight = player.position.y; // 플레이어의 높이
 
-        int cameraIndex = Mathf.FloorToInt(playerHeight / 10);
-        // 현재 높이를 10으로 나눠 FloorToInt 함수로 처리
-        // cameraIndex는 0~10은 0번, 10~20은 1번, ... 의 숫자를 가지게 함
+        int cameraIndex = Mathf.FloorToInt(playerHeight / 14);
+        // 현재 높이를 14으로 나눠 FloorToInt 함수로 처리
+        // cameraIndex는 0~14은 0번, 14~28은 1번, ... 의 숫자를 가지게 함
 
         for(int i = 0; i < cameras.Length; i++)
         {
