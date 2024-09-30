@@ -44,6 +44,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] LayerMask slopeLayer; // Ground 레이어 검사
     [SerializeField] bool onIce; // Ice 레이어 검사
     [SerializeField] LayerMask iceLayer; // Ice 레이어 검사
+    [SerializeField] bool onSnow; // Ice 레이어 검사
+    [SerializeField] LayerMask snowLayer; // Snow 레이어 검사
     [SerializeField] bool frontWall;
     [SerializeField] LayerMask wallLayer; // Wall 레이어 검사
 
@@ -133,10 +135,11 @@ public class PlayerController : MonoBehaviour
         Vector2 smallBoxSize = new Vector2(0.5f, 0.1f); // 플레이어의 좌우 크기 사이즈보다 작은 박스
         Vector2 boxOrigin = new Vector2(coll.bounds.center.x, coll.bounds.min.y); // 플레이어의 바닥 가운데 위치
         //isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사
-        onSlope = Physics2D.BoxCast(boxOrigin, smallBoxSize, 0, Vector2.down, 0.1f, slopeLayer); // 경사면 검사
         //onIce = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, iceLayer); // 얼음바닥 검사
 
-        int checkLayer = groundLayer | iceLayer; // 바닥인지, 얼음바닥인지 체크
+        onSlope = Physics2D.BoxCast(boxOrigin, smallBoxSize, 0, Vector2.down, 0.1f, slopeLayer); // 경사면 검사
+
+        int checkLayer = groundLayer | iceLayer | snowLayer; // 바닥의 종류 체크
         RaycastHit2D hit = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, checkLayer); // 바닥면 검사
 
         if(hit.collider != null) // 충돌한 물체가 있으면
@@ -158,18 +161,29 @@ public class PlayerController : MonoBehaviour
             {
                 onIce = false; // 그외는 !onIce
             }
+
+            if(hit.collider.tag == "Snow") // Snow 태그와 충돌하면
+            {
+                onSnow = true; // onSnow
+                isGround = true; // isGround
+            }
+            else
+            {
+                onSnow = false;
+            }
         }
         else
-        {
+        { // 바닥에 안닿아있으면 모두 false
             isGround = false;
             onIce = false;
+            onSnow = false;
         }
     }
 
     private void FrontChecker()
     {
         Vector2 rayDirection = Vector2.right * x; // ray를 쏠 방향
-        frontWall = Physics2D.Raycast(transform.position, rayDirection, 1, wallLayer); // 전방 1 만큼에 벽 레이어가 있는지 검사
+        frontWall = Physics2D.Raycast(transform.position, rayDirection, 0.6f, wallLayer); // 전방 0.1f 만큼에 벽 레이어가 있는지 검사
     }
 
     private void ChangeState(State nextState)
@@ -232,12 +246,12 @@ public class PlayerController : MonoBehaviour
 
             if (player.isGround) // 바닥에서 좌우입력하면 
             {
-                if (player.frontWall)
+                if (player.frontWall || player.onSnow) // 앞에 벽이 있거나, 눈 위면
                 {
-                    moveDir = 0; // 전방에 벽이 감지되면 이동 0
+                    moveDir = 0; // 이동 0
                 }
                 // player.rigid.velocity = new Vector2(moveDir, 0); // 벽이 없다면 이동
-                if (player.rigid.velocity.magnitude < player.maxMoveSpeed) // 최대 속도 제한
+                else if (player.rigid.velocity.magnitude < player.maxMoveSpeed) // 최대 속도 제한
                 {
                     player.rigid.AddForce(force, ForceMode2D.Force); // ForceMode2D.Force로 이동
                 }
@@ -326,13 +340,13 @@ public class PlayerController : MonoBehaviour
 
         public override void Update()
         {
-            // 점프 후 velocity.y가 0보다 작아지면 Fall 상태
-            if (player.rigid.velocity.y < 0 && !player.isGround)
+            // 점프 후 velocity.y가 0.01f보다 작아지면 Fall 상태
+            if (player.rigid.velocity.y < 0.01f)
             {
                 player.ChangeState(State.Fall);
             }
 
-            // 너무 낮게뛰어서 속도를 가지지 않은 가만히 있는 상태면 Idle 상태
+            // 가만히 있는 상태면 Idle 상태
             if (player.rigid.velocity.sqrMagnitude < 0.01f)
             {
                 player.ChangeState(State.Idle);
