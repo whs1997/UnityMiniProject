@@ -29,6 +29,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Controls")]
     [SerializeField] float moveSpeed; // 이동 속도
+    [SerializeField] float maxMoveSpeed; // 이동 속도
     [SerializeField] float minJumpPower; // 점프 최소힘
     [SerializeField] float maxJumpPower; // 점프 최대힘
     [SerializeField] float jumpCharge; // 점프 충전력
@@ -41,6 +42,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] LayerMask groundLayer; // Ground 레이어 검사
     [SerializeField] bool onSlope; // Ground 레이어 검사
     [SerializeField] LayerMask slopeLayer; // Ground 레이어 검사
+    [SerializeField] bool onIce; // Ice 레이어 검사
+    [SerializeField] LayerMask iceLayer; // Ice 레이어 검사
     [SerializeField] bool frontWall;
     [SerializeField] LayerMask wallLayer; // Wall 레이어 검사
 
@@ -127,16 +130,46 @@ public class PlayerController : MonoBehaviour
     private void GroundChecker()
     {
         Vector2 boxSize = new Vector2(coll.bounds.size.x, 0.1f); // 플레이어의 좌우 크기 사이즈의 박스
-        Vector2 slopeBoxSize = new Vector2(0.5f, 0.1f); // 플레이어의 좌우 크기 사이즈보다 작은 박스
+        Vector2 smallBoxSize = new Vector2(0.5f, 0.1f); // 플레이어의 좌우 크기 사이즈보다 작은 박스
         Vector2 boxOrigin = new Vector2(coll.bounds.center.x, coll.bounds.min.y); // 플레이어의 바닥 가운데 위치
-        isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사
-        onSlope = Physics2D.BoxCast(boxOrigin, slopeBoxSize, 0, Vector2.down, 0.1f, slopeLayer); // 경사면 검사
+        //isGround = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, groundLayer); // 바닥면 검사
+        onSlope = Physics2D.BoxCast(boxOrigin, smallBoxSize, 0, Vector2.down, 0.1f, slopeLayer); // 경사면 검사
+        //onIce = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, iceLayer); // 얼음바닥 검사
+
+        int checkLayer = groundLayer | iceLayer; // 바닥인지, 얼음바닥인지 체크
+        RaycastHit2D hit = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, checkLayer); // 바닥면 검사
+
+        if(hit.collider != null) // 충돌한 물체가 있으면
+        {
+            if (hit.collider.tag == "Ground") // ground 태그와 충돌하면
+            {
+                isGround = true; // isGround
+            }
+            else
+            {
+                isGround = false; // !isGround
+            }
+            if (hit.collider.tag == "Ice") // Ice 태그와 충돌하면
+            {
+                onIce = true; // onIce
+                isGround = true; // isGround
+            }
+            else
+            {
+                onIce = false; // 그외는 !onIce
+            }
+        }
+        else
+        {
+            isGround = false;
+            onIce = false;
+        }
     }
 
     private void FrontChecker()
     {
         Vector2 rayDirection = Vector2.right * x; // ray를 쏠 방향
-        frontWall = Physics2D.Raycast(transform.position, rayDirection, 0.6f, wallLayer); // 전방 0.1f 만큼에 벽 레이어가 있는지 검사
+        frontWall = Physics2D.Raycast(transform.position, rayDirection, 1, wallLayer); // 전방 1 만큼에 벽 레이어가 있는지 검사
     }
 
     private void ChangeState(State nextState)
@@ -195,13 +228,19 @@ public class PlayerController : MonoBehaviour
             }
 
             float moveDir = player.x * player.moveSpeed;
-            if (player.isGround && !player.isCharging) // 바닥에서 충전중이지 않을때 좌우입력하면 
+            Vector2 force = new Vector2(moveDir, 0);
+
+            if (player.isGround) // 바닥에서 좌우입력하면 
             {
                 if (player.frontWall)
                 {
                     moveDir = 0; // 전방에 벽이 감지되면 이동 0
                 }
-                player.rigid.velocity = new Vector2(moveDir, 0); // 벽이 없다면 이동
+                // player.rigid.velocity = new Vector2(moveDir, 0); // 벽이 없다면 이동
+                if (player.rigid.velocity.magnitude < player.maxMoveSpeed) // 최대 속도 제한
+                {
+                    player.rigid.AddForce(force, ForceMode2D.Force); // ForceMode2D.Force로 이동
+                }
             }        
 
             // 속도를 가지지 않은 가만히 있는 상태면 Idle 상태
@@ -279,7 +318,7 @@ public class PlayerController : MonoBehaviour
             SoundManager.Instance.PlaySFX(player.jumpClip);
 
             // Jump
-            player.rigid.velocity = new Vector2(player.x * 1.5f * player.moveSpeed, player.jumpPower); // 입력한 x 방향으로 점프
+            player.rigid.velocity = new Vector2(player.x * 1.5f * player.maxMoveSpeed, player.jumpPower); // 입력한 x 방향으로 점프
             player.isGround = false; // 점프중이니 isGround = false
             player.isCharging = false; // 충전 해제
             player.jumpPower = 0f; // 점프힘 0 초기화
@@ -287,8 +326,8 @@ public class PlayerController : MonoBehaviour
 
         public override void Update()
         {
-            // 점프 후 velocity.y가 -0.01보다 작아지면 Fall 상태
-            if (player.rigid.velocity.y < -0.01f && !player.isGround)
+            // 점프 후 velocity.y가 0보다 작아지면 Fall 상태
+            if (player.rigid.velocity.y < 0 && !player.isGround)
             {
                 player.ChangeState(State.Fall);
             }
@@ -317,13 +356,31 @@ public class PlayerController : MonoBehaviour
             // 낙하 시간 0.6초 이하로 착지하면 Land 상태
             if (player.currentFallSec <= 0.6 && player.isGround)
             {
-                player.rigid.velocity = new Vector2(0, 0); // 추락한 위치에서 이동하지 않음
+                if (!player.onIce) // 얼음바닥이 아닌곳에 떨어지면
+                {
+                    player.rigid.velocity = new Vector2(0, 0); // 추락한 위치에서 이동하지 않음
+                }
+                else if (player.onIce)
+                {
+                    float iceX = Mathf.Lerp(player.rigid.velocity.x, player.x * player.moveSpeed, Time.deltaTime * 0.33f);
+                    // 얼음에 떨어지면 미끄러지면서 서서히 멈추게
+                    player.rigid.velocity = new Vector2(iceX, 0);
+                }
                 player.ChangeState(State.Land);
             }
             // 낙하시간이 0.6초보다 크고 착지하면 Down 상태
             else if (player.currentFallSec > 0.6 && player.isGround)
             {
-                player.rigid.velocity = new Vector2(0, 0); // 추락한 위치에서 이동하지 않음
+                if (!player.onIce) // 얼음바닥이 아닌곳에 떨어지면
+                {
+                    player.rigid.velocity = new Vector2(0, 0); // 추락한 위치에서 이동하지 않음
+                }
+                else if (player.onIce)
+                {
+                    float iceX = Mathf.Lerp(player.rigid.velocity.x, player.x * player.moveSpeed, Time.deltaTime * 0.33f);
+                    // 얼음에 떨어지면 미끄러지면서 서서히 멈추게
+                    player.rigid.velocity = new Vector2(iceX, 0);
+                }
                 player.ChangeState(State.Down);
             }
             // 경사면에 떨어지면 미끄러져 내려가는 Slide 상태
