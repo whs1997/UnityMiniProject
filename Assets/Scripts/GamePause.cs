@@ -24,7 +24,7 @@ public class GamePause : MonoBehaviour
     [SerializeField] Slider bgmSlider; // BGM 볼륨 슬라이더
     [SerializeField] Slider sfxSlider; // SFX 볼륨 슬라이더
 
-    [SerializeField] TextMeshProUGUI curJumpKeyText; // 현재 점프 키를 보여줄 텍스트
+    [SerializeField] TextMeshProUGUI curJumpKeyText; // 버튼에 현재 점프 키를 보여줄 텍스트
     public KeyCode newJumpKey = KeyCode.Space; // 변경할 점프 키, 기본은 스페이스
     private bool waitForKey = false; // 새로운 키 입력 대기할 상태
 
