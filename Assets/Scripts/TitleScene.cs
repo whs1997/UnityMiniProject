@@ -6,10 +6,18 @@ public class TitleScene : MonoBehaviour
 {
     [SerializeField] GameObject pressStart;
     [SerializeField] float blinkSpeed; // ±ôºýÀÌ´Â È¿°ú
+    [SerializeField] AudioClip TitleBGM;
 
-    private void Awake()
+
+    private void Start()
     {
         StartCoroutine(Blink());
+        SoundManager.Instance.PlayBGM(TitleBGM);
+    }
+
+    private void OnDisable()
+    {
+        SoundManager.Instance.StopBGM();
     }
 
     private void Update()

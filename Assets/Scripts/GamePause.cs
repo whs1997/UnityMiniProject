@@ -49,6 +49,7 @@ public class GamePause : MonoBehaviour
     private void Quit()
     {
         SceneManager.LoadScene("TitleScene"); // 게임 종료(타이틀 씬으로 이동)
+        Time.timeScale = 1;
     }
 
     private void Option()

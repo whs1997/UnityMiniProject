@@ -67,6 +67,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] AudioClip landClip;
     [SerializeField] AudioClip downClip;
     [SerializeField] AudioClip hitClip;
+    [SerializeField] AudioClip bgm;
 
     public int jumpCount { get; private set; } = 0;
     public int DownCount { get; private set; } = 0;
@@ -75,6 +76,7 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         states[(int)curState].Enter();
+        SoundManager.Instance.PlayBGM(bgm);
     }
 
     private void Awake()
@@ -146,7 +148,7 @@ public class PlayerController : MonoBehaviour
         onSlope = Physics2D.BoxCast(boxOrigin, smallBoxSize, 0, Vector2.down, 0.1f, slopeLayer); // 경사면 검사
 
         int checkLayer = groundLayer | iceLayer | snowLayer; // 바닥의 종류 체크
-        RaycastHit2D hit = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.1f, checkLayer); // 바닥면 검사
+        RaycastHit2D hit = Physics2D.BoxCast(boxOrigin, boxSize, 0, Vector2.down, 0.05f, checkLayer); // 바닥면 검사
 
         if(hit.collider != null) // 충돌한 물체가 있으면
         {
@@ -298,7 +300,7 @@ public class PlayerController : MonoBehaviour
             // 이동이 없는 상태에서 스페이스바를 누르고 있으면,
             if (Input.GetKey(KeyCode.Space) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f)
             {
-                player.rigid.velocity = new Vector2(0, 0); // 이동하지 않음
+                player.rigid.velocity = new Vector2(0, player.rigid.velocity.y); // 이동하지 않음
                 player.isCharging = true;
                 player.jumpPower += player.jumpCharge * Time.deltaTime; // 점프힘 증가
                 player.jumpPower = Mathf.Clamp(player.jumpPower, player.minJumpPower, player.maxJumpPower); // 최대 점프힘까지만 증가
