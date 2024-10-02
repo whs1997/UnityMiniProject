@@ -26,6 +26,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] Collider2D coll;
     [SerializeField] PhysicsMaterial2D wall;
     [SerializeField] Animator animator;
+    [SerializeField] GamePause setting;
 
     [Header("Controls")]
     [SerializeField] float moveSpeed; // 이동 속도
@@ -72,7 +73,9 @@ public class PlayerController : MonoBehaviour
     public int jumpCount { get; private set; } = 0;
     public int DownCount { get; private set; } = 0;
     public bool isPaused = false;
-    
+
+    private KeyCode jumpKey = KeyCode.Space;
+
     private void Start()
     {
         states[(int)curState].Enter();
@@ -194,6 +197,11 @@ public class PlayerController : MonoBehaviour
         frontWall = Physics2D.Raycast(transform.position, rayDirection, 0.6f, wallLayer); // 전방 0.1f 만큼에 벽 레이어가 있는지 검사
     }
 
+    public void AssignJumpKey(KeyCode newJumpKey)
+    {
+        jumpKey = newJumpKey;
+    }
+
     private void ChangeState(State nextState)
     {
         states[(int)curState].Exit();
@@ -220,7 +228,7 @@ public class PlayerController : MonoBehaviour
                 player.ChangeState(State.Run);
             }
             // 정지 상태에서 스페이스바를 눌러 충전중이면 Charge 상태
-            if (Input.GetKey(KeyCode.Space) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f && !player.isPaused)
+            if (Input.GetKey(player.jumpKey) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f && !player.isPaused)
             {
                 player.ChangeState(State.Charge);
             }
@@ -271,7 +279,7 @@ public class PlayerController : MonoBehaviour
                 player.ChangeState(State.Idle);
             }
             // 스페이스바를 눌러 충전중이면 Charge 상태
-            if (Input.GetKey(KeyCode.Space) && !player.onSlope && !player.isPaused)
+            if (Input.GetKey(player.jumpKey) && !player.onSlope && !player.isPaused)
             {
                 player.rigid.velocity = new Vector2(0, 0); // 이동을 멈추고 충전
                 player.ChangeState(State.Charge);
@@ -298,7 +306,7 @@ public class PlayerController : MonoBehaviour
         public override void Update()
         {
             // 이동이 없는 상태에서 스페이스바를 누르고 있으면,
-            if (Input.GetKey(KeyCode.Space) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f)
+            if (Input.GetKey(player.jumpKey) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f)
             {
                 player.rigid.velocity = new Vector2(0, player.rigid.velocity.y); // 이동하지 않음
                 player.isCharging = true;
@@ -314,7 +322,7 @@ public class PlayerController : MonoBehaviour
                 player.ChangeState(State.Jump);
             }
             // 충전 후 스페이스바를 떼면 Jump 상태
-            else if (Input.GetKeyUp(KeyCode.Space) && player.isGround && !player.isPaused)
+            else if (Input.GetKeyUp(player.jumpKey) && player.isGround && !player.isPaused)
             {
                 player.ChangeState(State.Jump);
             }
