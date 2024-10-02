@@ -68,7 +68,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] AudioClip downClip;
     [SerializeField] AudioClip hitClip;
 
-
+    public int jumpCount { get; private set; } = 0;
+    public int DownCount { get; private set; } = 0;
+    public bool isPaused = false;
+    
     private void Start()
     {
         states[(int)curState].Enter();
@@ -103,16 +106,19 @@ public class PlayerController : MonoBehaviour
 
     private void Flip()
     {
-        if (curState == State.Jump || // 점프중이거나
-            curState == State.Fall || // 낙하중이거나
-            curState == State.Down || // 쓰러진 상태거나
-            curState == State.Slide) // 미끄러져 내려오는 중일때
-            return; // 해당 상태들에선 Flip 하지 않기
+        if (!isPaused) // 게임 정지상태가 아닐때만
+        {
+            if (curState == State.Jump || // 점프중이거나
+                curState == State.Fall || // 낙하중이거나
+                curState == State.Down || // 쓰러진 상태거나
+                curState == State.Slide) // 미끄러져 내려오는 중일때
+                return; // 해당 상태들에선 Flip 하지 않기
 
-        if (x < 0)
-            render.flipX = true; // 왼쪽으로 입력하면 좌우 반전
-        else if (x > 0)
-            render.flipX = false;
+            if (x < 0)
+                render.flipX = true; // 왼쪽으로 입력하면 좌우 반전
+            else if (x > 0)
+                render.flipX = false;
+        }
     }
 
     private void CheckFalling()
@@ -207,12 +213,12 @@ public class PlayerController : MonoBehaviour
         public override void Update()
         {
             // 바닥에서 좌우 입력을 하면 Run 상태
-            if (Mathf.Abs(player.x) > 0.01f && player.isGround && !player.isCharging)
+            if (Mathf.Abs(player.x) > 0.01f && player.isGround && !player.isCharging && !player.isPaused)
             {
                 player.ChangeState(State.Run);
             }
             // 정지 상태에서 스페이스바를 눌러 충전중이면 Charge 상태
-            if (Input.GetKey(KeyCode.Space) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f)
+            if (Input.GetKey(KeyCode.Space) && player.isGround && player.rigid.velocity.sqrMagnitude < 0.01f && !player.isPaused)
             {
                 player.ChangeState(State.Charge);
             }
@@ -258,12 +264,12 @@ public class PlayerController : MonoBehaviour
             }        
 
             // 속도를 가지지 않은 가만히 있는 상태면 Idle 상태
-            if (player.rigid.velocity.sqrMagnitude < 0.01f)
+            if (player.rigid.velocity.sqrMagnitude < 0.01f && !player.isPaused)
             {
                 player.ChangeState(State.Idle);
             }
             // 스페이스바를 눌러 충전중이면 Charge 상태
-            if (Input.GetKey(KeyCode.Space) && !player.onSlope)
+            if (Input.GetKey(KeyCode.Space) && !player.onSlope && !player.isPaused)
             {
                 player.rigid.velocity = new Vector2(0, 0); // 이동을 멈추고 충전
                 player.ChangeState(State.Charge);
@@ -306,7 +312,7 @@ public class PlayerController : MonoBehaviour
                 player.ChangeState(State.Jump);
             }
             // 충전 후 스페이스바를 떼면 Jump 상태
-            else if (Input.GetKeyUp(KeyCode.Space) && player.isGround)
+            else if (Input.GetKeyUp(KeyCode.Space) && player.isGround && !player.isPaused)
             {
                 player.ChangeState(State.Jump);
             }
@@ -330,12 +336,17 @@ public class PlayerController : MonoBehaviour
             player.animator.Play(jumpHash);
             // Jump 사운드 재생
             SoundManager.Instance.PlaySFX(player.jumpClip);
+            // Jump 카운트
+            player.jumpCount++;
 
             // Jump
-            player.rigid.velocity = new Vector2(player.x * 1.5f * player.maxMoveSpeed, player.jumpPower); // 입력한 x 방향으로 점프
-            player.isGround = false; // 점프중이니 isGround = false
-            player.isCharging = false; // 충전 해제
-            player.jumpPower = 0f; // 점프힘 0 초기화
+            if (!player.isPaused) // 게임 정지상태가 아닐때만
+            {
+                player.rigid.velocity = new Vector2(player.x * 2f * player.maxMoveSpeed, player.jumpPower); // 입력한 x 방향으로 점프
+                player.isGround = false; // 점프중이니 isGround = false
+                player.isCharging = false; // 충전 해제
+                player.jumpPower = 0f; // 점프힘 0 초기화
+            }
         }
 
         public override void Update()
@@ -441,6 +452,9 @@ public class PlayerController : MonoBehaviour
             // Down 효과음 재생
             SoundManager.Instance.PlaySFX(player.downClip);
             // 1초동안 못움직이는 효과?
+
+            // Down 카운트
+            player.DownCount++;
         }
         public override void Update()
         {
@@ -503,7 +517,7 @@ public class PlayerController : MonoBehaviour
                 */
                 // 벽 콜라이더에 Physics Metarial 2D에 bounce를 주는게 나은거같음
 
-                Debug.Log("벽에 튕겨나감");
+                // Debug.Log("벽에 튕겨나감");
             }
         }
     }
